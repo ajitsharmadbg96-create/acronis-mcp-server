@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Sign in · SGSPL Cloud</title>
+<link rel="stylesheet" href="/assets/styles.css" />
+</head>
+<body class="login-body">
+  <div class="login-card">
+    <div class="login-mark">
+      <svg class="brand-logo" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path d="M16 2 L28 8 V17 C28 23.5 22.8 28.6 16 30 C9.2 28.6 4 23.5 4 17 V8 Z" fill="none" stroke="#3ED9C0" stroke-width="1.6"/>
+        <circle cx="16" cy="12" r="2.1" fill="#3ED9C0"/>
+        <circle cx="10.5" cy="19" r="2.1" fill="#3ED9C0"/>
+        <circle cx="21.5" cy="19" r="2.1" fill="#3ED9C0"/>
+        <path d="M16 12 L10.5 19 M16 12 L21.5 19 M10.5 19 L21.5 19" stroke="#3ED9C0" stroke-width="1.1" opacity="0.6"/>
+      </svg>
+      <span class="login-mark-text">SGSPL CLOUD <span class="mark-sub">/ OPS CONSOLE</span></span>
+    </div>
+    <h1>Sign in</h1>
+    <p class="login-sub">Monitor devices, backup plans, and static groups.</p>
+
+    <form method="POST" action="/login" class="login-form">
+      <label for="username">Username</label>
+      <input id="username" name="username" type="text" autocomplete="username" required autofocus />
+
+      <label for="password">Password</label>
+      <input id="password" name="password" type="password" autocomplete="current-password" required />
+
+      <button type="submit">Sign in</button>
+    </form>
+
+    <p class="login-error" id="loginError" hidden>Incorrect username or password.</p>
+  </div>
+
+  <footer class="site-footer">
+    <span>© <span id="footerYear"></span> SGSPL Cloud. All rights reserved.</span>
+    <span class="footer-sep">·</span>
+    <span>Developed by SGSPL CLOUD</span>
+    <span class="footer-sep">·</span>
+    <a href="mailto:ajit.sharma@sgspl.cloud">ajit.sharma@sgspl.cloud</a>
+  </footer>
+
+  <script>
+    if (new URLSearchParams(window.location.search).get("error")) {
+      document.getElementById("loginError").hidden = false;
+    }
+    document.getElementById("footerYear").textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>

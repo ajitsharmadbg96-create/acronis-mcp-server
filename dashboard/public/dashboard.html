@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SGSPL Cloud — Ops Console</title>
+<link rel="stylesheet" href="/assets/styles.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-mark">
+      <svg class="brand-logo" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path d="M16 2 L28 8 V17 C28 23.5 22.8 28.6 16 30 C9.2 28.6 4 23.5 4 17 V8 Z" fill="none" stroke="#3ED9C0" stroke-width="1.6"/>
+        <circle cx="16" cy="12" r="2.1" fill="#3ED9C0"/>
+        <circle cx="10.5" cy="19" r="2.1" fill="#3ED9C0"/>
+        <circle cx="21.5" cy="19" r="2.1" fill="#3ED9C0"/>
+        <path d="M16 12 L10.5 19 M16 12 L21.5 19 M10.5 19 L21.5 19" stroke="#3ED9C0" stroke-width="1.1" opacity="0.6"/>
+      </svg>
+      <span class="topbar-mark-text">SGSPL CLOUD <span class="mark-sub">/ OPS CONSOLE</span></span>
+    </div>
+    <div class="topbar-actions">
+      <select id="tenantSelect" class="tenant-select" title="Scope everything to one customer tenant">
+        <option value="">All customers</option>
+      </select>
+      <span class="last-updated" id="lastUpdated"></span>
+      <button type="button" class="btn-ghost" id="refreshBtn" title="Refresh all data">⟳ Refresh</button>
+      <a href="/settings" class="btn-ghost" style="text-decoration:none; display:inline-block;">Settings</a>
+      <form method="POST" action="/logout" class="logout-form">
+        <button type="submit" class="btn-ghost">Sign out</button>
+      </form>
+    </div>
+  </header>
+
+  <main class="dashboard">
+    <div class="banner" id="configBanner" hidden>
+      Acronis API credentials aren't set up yet. <a href="/settings">Add them in Settings</a> to see live data.
+    </div>
+
+    <section class="stat-row" id="statRow" aria-label="Summary">
+      <div class="stat-card">
+        <span class="stat-label">Devices</span>
+        <span class="stat-value" id="statDevices">–</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Static Groups</span>
+        <span class="stat-value" id="statGroups">–</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Backup Plans</span>
+        <span class="stat-value" id="statPlans">–</span>
+      </div>
+      <div class="stat-card stat-card--action">
+        <span class="stat-label">Report</span>
+        <a class="btn-primary" href="/api/report/download" id="downloadReportLink">Download .xlsx</a>
+      </div>
+    </section>
+
+    <section class="panel-grid">
+      <div class="panel">
+        <div class="panel-head">
+          <h2>Devices per Group</h2>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="groupChart"></canvas>
+          <div class="chart-empty" id="groupChartEmpty" hidden></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h2>Incidents by Severity</h2>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="severityChart"></canvas>
+          <div class="chart-empty" id="severityChartEmpty" hidden></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel-grid">
+      <div class="panel panel--wide">
+        <div class="panel-head">
+          <h2>Devices</h2>
+          <span class="panel-sub" id="deviceCountSub"></span>
+        </div>
+        <div class="table-toolbar">
+          <input type="text" id="deviceSearch" class="search-input" placeholder="Filter by device, plan, or group…" />
+          <button type="button" class="btn-ghost" id="clearFilterBtn" hidden>Clear</button>
+        </div>
+        <div class="table-wrap">
+          <table id="deviceTable">
+            <thead>
+              <tr>
+                <th data-sort="deviceName">Device <span class="sort-arrow"></span></th>
+                <th data-sort="type">Type <span class="sort-arrow"></span></th>
+                <th data-sort="lastBackup">Last Backup <span class="sort-arrow"></span></th>
+                <th data-sort="lastAntivirusScan">Last AV Scan <span class="sort-arrow"></span></th>
+                <th data-sort="planName">Plan <span class="sort-arrow"></span></th>
+                <th data-sort="groupName">Static Group <span class="sort-arrow"></span></th>
+                <th data-sort="groupDeviceCount">Devices in Group <span class="sort-arrow"></span></th>
+              </tr>
+            </thead>
+            <tbody id="deviceTableBody">
+              <tr><td colspan="7" class="empty-row"><span class="skeleton-line"></span></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="pagination" id="devicePagination"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h2>Plans</h2>
+          <span class="panel-sub">click to filter devices</span>
+        </div>
+        <ul class="group-list" id="planList">
+          <li class="empty-row"><span class="skeleton-line"></span></li>
+        </ul>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h2>Static Groups</h2>
+          <span class="panel-sub" id="groupCountSub">click a group to expand its devices</span>
+        </div>
+        <ul class="group-list group-list--expandable" id="groupList">
+          <li class="empty-row"><span class="skeleton-line"></span></li>
+        </ul>
+      </div>
+
+      <div class="panel panel--wide">
+        <div class="panel-head">
+          <h2>EDR Incidents</h2>
+          <span class="panel-sub" id="incidentCountSub">mitigated action taken, or suspicious file/process detected</span>
+        </div>
+        <div class="table-wrap">
+          <table id="incidentTable">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Device</th>
+                <th>Detected</th>
+                <th>Category</th>
+                <th>Severity</th>
+                <th>Positivity</th>
+                <th>Status</th>
+                <th>File</th>
+                <th>Process</th>
+                <th>Action Taken</th>
+              </tr>
+            </thead>
+            <tbody id="incidentTableBody">
+              <tr><td colspan="10" class="empty-row"><span class="skeleton-line"></span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="panel panel--wide">
+        <div class="panel-head">
+          <h2>Group Modification Audit Log</h2>
+          <span class="panel-sub" id="auditCountSub">device moves between static groups</span>
+        </div>
+        <div class="table-wrap">
+          <table id="auditTable">
+            <thead>
+              <tr>
+                <th>Timestamp</th>
+                <th>Device</th>
+                <th>Change</th>
+                <th>Performed By</th>
+              </tr>
+            </thead>
+            <tbody id="auditTableBody">
+              <tr><td colspan="4" class="empty-row"><span class="skeleton-line"></span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="panel panel--wide">
+        <div class="panel-head">
+          <h2>Active Alerts</h2>
+        </div>
+        <ul class="alert-list" id="alertList">
+          <li class="empty-row"><span class="skeleton-line"></span></li>
+        </ul>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <span>© <span id="footerYear"></span> SGSPL Cloud. All rights reserved.</span>
+    <span class="footer-sep">·</span>
+    <span>Developed by SGSPL CLOUD</span>
+    <span class="footer-sep">·</span>
+    <a href="mailto:ajit.sharma@sgspl.cloud">ajit.sharma@sgspl.cloud</a>
+  </footer>
+
+  <script src="/assets/dashboard.js"></script>
+</body>
+</html>

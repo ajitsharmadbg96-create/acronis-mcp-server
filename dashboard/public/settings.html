@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Settings · SGSPL Cloud</title>
+<link rel="stylesheet" href="/assets/styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-mark">
+      <svg class="brand-logo" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path d="M16 2 L28 8 V17 C28 23.5 22.8 28.6 16 30 C9.2 28.6 4 23.5 4 17 V8 Z" fill="none" stroke="#3ED9C0" stroke-width="1.6"/>
+        <circle cx="16" cy="12" r="2.1" fill="#3ED9C0"/>
+        <circle cx="10.5" cy="19" r="2.1" fill="#3ED9C0"/>
+        <circle cx="21.5" cy="19" r="2.1" fill="#3ED9C0"/>
+        <path d="M16 12 L10.5 19 M16 12 L21.5 19 M10.5 19 L21.5 19" stroke="#3ED9C0" stroke-width="1.1" opacity="0.6"/>
+      </svg>
+      <span class="topbar-mark-text">SGSPL CLOUD <span class="mark-sub">/ OPS CONSOLE</span></span>
+    </div>
+    <div class="topbar-actions">
+      <a href="/dashboard" class="btn-ghost" style="text-decoration:none; display:inline-block;">← Dashboard</a>
+      <form method="POST" action="/logout" class="logout-form">
+        <button type="submit" class="btn-ghost">Sign out</button>
+      </form>
+    </div>
+  </header>
+
+  <main class="dashboard" style="max-width: 560px;">
+    <div class="panel">
+      <div class="panel-head">
+        <h2>Acronis API credentials</h2>
+      </div>
+      <p style="font-size:13px; color:var(--text-muted); margin-top:-4px; margin-bottom:18px;">
+        From the Acronis Management Portal: <b>Settings → API clients</b>.
+        The datacenter URL is whatever shows in your browser's address bar
+        while logged into the portal.
+      </p>
+
+      <form id="settingsForm" class="login-form" style="gap:6px;">
+        <label for="datacenterUrl">Datacenter URL</label>
+        <input id="datacenterUrl" name="datacenterUrl" type="text" placeholder="https://us5-cloud.acronis.com" />
+
+        <label for="clientId">Client ID</label>
+        <input id="clientId" name="clientId" type="text" placeholder="your-client-id" />
+
+        <label for="clientSecret">Client Secret</label>
+        <input id="clientSecret" name="clientSecret" type="password" placeholder="" autocomplete="new-password" />
+        <span id="secretHint" style="font-size:12px; color:var(--text-muted);"></span>
+
+        <button type="submit">Save credentials</button>
+      </form>
+
+      <p id="statusMsg" style="font-size:13px; margin-top:14px;" hidden></p>
+    </div>
+
+    <div class="panel" style="margin-top:16px;">
+      <div class="panel-head">
+        <h2>Static Group → Device Mapping</h2>
+        <span class="panel-sub" id="mappingStatusSub"></span>
+      </div>
+      <p style="font-size:13px; color:var(--text-muted); margin-top:-4px; margin-bottom:14px;">
+        Acronis's public API doesn't expose which devices are in which
+        static group, so this is entered manually as the reliable source
+        of truth — once filled in, it's used everywhere (dashboard, exports)
+        instead of best-effort auto-detection. One group per line, format:
+        <code style="color:var(--accent);">GroupName: device1, device2, device3</code>
+      </p>
+
+      <textarea id="groupMappingText" rows="10" style="width:100%; box-sizing:border-box; background:var(--surface-alt); border:1px solid var(--border); border-radius:6px; padding:10px 12px; color:var(--text-primary); font-family:var(--font-mono); font-size:12px; resize:vertical;" placeholder="EDR_ENABLED_ENDPOINTS: LAP10000066.iifclserver.com, WIFI_PC.iifclserver.com
+EDR_ENABLED_ENDPOINTS_CCD: SAP-IT02.iifclserver.com
+IT Department EDR: MD_IIFCL, Prim-Symantec.iifclserver.com"></textarea>
+
+      <button type="button" id="saveMappingBtn" style="margin-top:12px; background:var(--accent); color:#06231F; border:none; border-radius:6px; padding:9px 16px; font-weight:600; font-size:13px; cursor:pointer;">Save mapping</button>
+
+      <p id="mappingStatusMsg" style="font-size:13px; margin-top:12px;" hidden></p>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <span>© <span id="footerYear"></span> SGSPL Cloud. All rights reserved.</span>
+    <span class="footer-sep">·</span>
+    <span>Developed by SGSPL CLOUD</span>
+    <span class="footer-sep">·</span>
+    <a href="mailto:ajit.sharma@sgspl.cloud">ajit.sharma@sgspl.cloud</a>
+  </footer>
+
+  <script>
+    async function loadSettings() {
+      const res = await fetch('/api/settings');
+      const data = await res.json();
+      document.getElementById('datacenterUrl').value = data.datacenterUrl || '';
+      document.getElementById('clientId').value = data.clientId || '';
+      document.getElementById('secretHint').textContent = data.clientSecretSet
+        ? 'A secret is already saved. Leave blank to keep it, or enter a new one to replace it.'
+        : 'No secret saved yet.';
+    }
+
+    document.getElementById('settingsForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const body = {
+        datacenterUrl: document.getElementById('datacenterUrl').value.trim(),
+        clientId: document.getElementById('clientId').value.trim(),
+        clientSecret: document.getElementById('clientSecret').value,
+      };
+      const statusEl = document.getElementById('statusMsg');
+      try {
+        const res = await fetch('/api/settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        if (!res.ok) throw new Error('Save failed');
+        statusEl.textContent = 'Saved. Go back to the dashboard to see live data.';
+        statusEl.style.color = 'var(--accent)';
+        statusEl.hidden = false;
+        document.getElementById('clientSecret').value = '';
+        loadSettings();
+      } catch (err) {
+        statusEl.textContent = 'Something went wrong saving these — check the server logs.';
+        statusEl.style.color = 'var(--critical)';
+        statusEl.hidden = false;
+      }
+    });
+
+    async function loadGroupMapping() {
+      const res = await fetch('/api/group-mapping');
+      const data = await res.json();
+      document.getElementById('groupMappingText').value = data.text || '';
+      document.getElementById('mappingStatusSub').textContent = data.active
+        ? `${data.groupCount} group(s) mapped — active, taking priority over auto-detection`
+        : 'not set yet — auto-detection is being used as a fallback';
+    }
+
+    document.getElementById('saveMappingBtn').addEventListener('click', async () => {
+      const text = document.getElementById('groupMappingText').value;
+      const statusEl = document.getElementById('mappingStatusMsg');
+      try {
+        const res = await fetch('/api/group-mapping', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text }),
+        });
+        if (!res.ok) throw new Error('Save failed');
+        const data = await res.json();
+        statusEl.textContent = `Saved ${data.groupCount} group(s). The dashboard and exports will use this immediately.`;
+        statusEl.style.color = 'var(--accent)';
+        statusEl.hidden = false;
+        loadGroupMapping();
+      } catch (err) {
+        statusEl.textContent = 'Something went wrong saving this — check the server logs.';
+        statusEl.style.color = 'var(--critical)';
+        statusEl.hidden = false;
+      }
+    });
+
+    loadSettings();
+    loadGroupMapping();
+    document.getElementById("footerYear").textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>

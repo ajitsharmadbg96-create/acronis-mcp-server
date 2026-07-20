@@ -1,0 +1,22 @@
+{
+  "name": "acronis-mcp-server",
+  "version": "1.0.0",
+  "description": "Custom MCP server exposing Acronis Cyber Protect Cloud API as tools for Claude",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "report": "node scripts/generate-report.js",
+    "dashboard": "node dashboard/server.js",
+    "create-user": "node scripts/create-dashboard-user.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.11.0",
+    "bcryptjs": "^2.4.3",
+    "dotenv": "^16.6.1",
+    "exceljs": "^4.4.0",
+    "express": "^4.19.2",
+    "express-session": "^1.18.0",
+    "zod": "^3.23.8"
+  }
+}
