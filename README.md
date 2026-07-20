@@ -209,8 +209,7 @@ the public API.
    enter each group and its devices once (copy/pasted from what you can
    see in the console), one group per line:
    ```
-   EDR_ENABLED_ENDPOINTS: LAP10000066.iifclserver.com, WIFI_PC.iifclserver.com
-   IT Department EDR: MD_IIFCL, Prim-Symantec.iifclserver.com
+   CWAREAJIT
    ```
    Once saved, this is used everywhere — the dashboard's Static Groups
    panel, the device table, and every export sheet — instead of the
